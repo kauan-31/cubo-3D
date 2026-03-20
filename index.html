@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cubo 3D - 3x3 Divisões | Todas as Faces Brancas Uniformes</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', monospace;
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 16px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 100;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        @media (max-width: 600px) {
+            #info { font-size: 10px; top: 10px; left: 10px; padding: 6px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        ⬜ CUBO 3x3 | 27 peças | Todas as faces brancas uniformes | Arestas pretas
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        // --- Configuração da Cena - Fundo Preto ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        
+        // --- Câmera Perspectiva ---
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(4.2, 3.8, 5.2);
+        camera.lookAt(0, 0, 0);
+        
+        // --- Renderizador WebGL ---
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+        
+        // --- Controles Orbitais (apenas para movimentação, sem efeitos extras) ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = false;
+        controls.rotateSpeed = 1.0;
+        controls.zoomSpeed = 1.0;
+        controls.panSpeed = 0.8;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.enableRotate = true;
+        controls.autoRotate = false;
+        controls.target.set(0, 0, 0);
+        
+        // --- Iluminação para garantir todas as faces brancas uniformes ---
+        // Usando luz ambiente forte + múltiplas luzes direcionais para eliminar sombras
+        
+        // Luz ambiente forte para iluminar todas as faces igualmente
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        scene.add(ambientLight);
+        
+        // Luz direcional frontal
+        const frontLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        frontLight.position.set(0, 0, 5);
+        scene.add(frontLight);
+        
+        // Luz direcional traseira
+        const backLightDir = new THREE.DirectionalLight(0xffffff, 0.5);
+        backLightDir.position.set(0, 0, -5);
+        scene.add(backLightDir);
+        
+        // Luz direcional direita
+        const rightLightDir = new THREE.DirectionalLight(0xffffff, 0.5);
+        rightLightDir.position.set(5, 0, 0);
+        scene.add(rightLightDir);
+        
+        // Luz direcional esquerda
+        const leftLightDir = new THREE.DirectionalLight(0xffffff, 0.5);
+        leftLightDir.position.set(-5, 0, 0);
+        scene.add(leftLightDir);
+        
+        // Luz direcional superior
+        const topLightDir = new THREE.DirectionalLight(0xffffff, 0.5);
+        topLightDir.position.set(0, 5, 0);
+        scene.add(topLightDir);
+        
+        // Luz direcional inferior
+        const bottomLightDir = new THREE.DirectionalLight(0xffffff, 0.5);
+        bottomLightDir.position.set(0, -5, 0);
+        scene.add(bottomLightDir);
+        
+        // Pontos de luz adicionais para garantir uniformidade
+        const fillLight1 = new THREE.PointLight(0xffffff, 0.3);
+        fillLight1.position.set(2, 2, 2);
+        scene.add(fillLight1);
+        
+        const fillLight2 = new THREE.PointLight(0xffffff, 0.3);
+        fillLight2.position.set(-2, 2, -2);
+        scene.add(fillLight2);
+        
+        const fillLight3 = new THREE.PointLight(0xffffff, 0.3);
+        fillLight3.position.set(2, -2, -2);
+        scene.add(fillLight3);
+        
+        const fillLight4 = new THREE.PointLight(0xffffff, 0.3);
+        fillLight4.position.set(-2, -2, 2);
+        scene.add(fillLight4);
+        
+        // --- CONSTRUÇÃO DO CUBO COM DIVISÕES 3x3 - ESPAÇAMENTO PROPORCIONAL ---
+        // Todas as faces são brancas (um único material para todas as peças)
+        
+        const pieceSize = 0.82;      // Tamanho de cada peça
+        const gapSize = 0.18;        // Espaçamento proporcional
+        const step = pieceSize + gapSize;  // Distância entre centros
+        
+        // Material branco para todas as peças (todas as faces com a mesma cor)
+        // Desativando sombras e reflexos para garantir uniformidade
+        const whiteMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.5,
+            metalness: 0.0,
+            emissive: 0x000000,
+            flatShading: false
+        });
+        
+        // Material para as arestas pretas
+        const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+        
+        // Array para armazenar todas as peças
+        const pieces = [];
+        
+        // Posições: -1, 0, 1 para criar 3x3x3 (27 peças)
+        const positions = [-1, 0, 1];
+        
+        positions.forEach(x => {
+            positions.forEach(y => {
+                positions.forEach(z => {
+                    // Calcular posição com espaçamento proporcional
+                    const posX = x * step;
+                    const posY = y * step;
+                    const posZ = z * step;
+                    
+                    // Criar geometria do cubo com material branco uniforme
+                    const geometry = new THREE.BoxGeometry(pieceSize, pieceSize, pieceSize);
+                    const piece = new THREE.Mesh(geometry, whiteMaterial);
+                    
+                    piece.position.set(posX, posY, posZ);
+                    piece.castShadow = false;  // Desativar sombras para evitar escurecimento
+                    piece.receiveShadow = false;
+                    
+                    scene.add(piece);
+                    pieces.push(piece);
+                    
+                    // Adicionar arestas pretas em cada peça
+                    const edgesGeo = new THREE.EdgesGeometry(geometry);
+                    const wireframe = new THREE.LineSegments(edgesGeo, edgeMaterial);
+                    piece.add(wireframe);
+                });
+            });
+        });
+        
+        // --- Função de animação (apenas renderização estática) ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Renderizar cena
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // --- Responsividade da janela ---
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Console
+        console.log('Cubo 3x3 | Todas as faces brancas uniformes | Fundo preto | Espaçamento proporcional');
+    </script>
+</body>
+</html>
